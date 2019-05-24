@@ -35,7 +35,9 @@ _PPLXIMP void YieldExecution() { std::this_thread::yield(); }
 
 _PPLXIMP void linux_scheduler::schedule(TaskProc_t proc, void* param)
 {
-    crossplat::threadpool::shared_instance().service().post(boost::bind(proc, param));
+    // RTC: we do not use the default scheduler for linux or android.
+    // This call brings in additional source files so we just remove it.
+    //crossplat::threadpool::shared_instance().service().post(boost::bind(proc, param));
 }
 
 } // namespace details
