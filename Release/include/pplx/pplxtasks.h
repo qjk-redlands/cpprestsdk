@@ -1549,10 +1549,6 @@ private:
     _Task_impl_base const& operator=(_Task_impl_base const&);
 };
 
-#if PPLX_TASK_ASYNC_LOGGING
-void _TaskEventLogger::_LogTaskCompleted();
-#endif
-
 /// <summary>
 ///     The implementation of a first-class task. This structure contains the task group used to execute
 ///     the task function and handles the scheduling. The _Task_impl is created as a shared_ptr

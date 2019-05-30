@@ -402,7 +402,7 @@ namespace details
   {
   }
 
-#if _PPLTASK_ASYNC_LOGGING
+#if PPLX_TASK_ASYNC_LOGGING
   bool _IsCausalitySupported()
   {
 #if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP)
@@ -589,7 +589,7 @@ namespace details
   _TaskWorkItemRAIILogger::_TaskWorkItemRAIILogger(_TaskEventLogger &)
   {
   }
-#endif // _PPLTASK_ASYNC_LOGGING
+#endif // PPLX_TASK_ASYNC_LOGGING
 
   _Task_impl_base::_Task_impl_base(_CancellationTokenState * _PTokenState, scheduler_ptr _Scheduler_arg) : _M_TaskState(_Created)
     , _M_fFromAsync(false)
