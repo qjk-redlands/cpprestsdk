@@ -87,7 +87,7 @@
 #include <vector>
 
 // json
-#include "cpprest/json.h"
+//#include "cpprest/json.h"
 
 // uri
 #include "cpprest/base_uri.h"
@@ -97,22 +97,22 @@
 #include "cpprest/details/web_utilities.h"
 
 // http
-#include "cpprest/details/http_helpers.h"
-#include "cpprest/http_client.h"
-#include "cpprest/http_headers.h"
-#include "cpprest/http_msg.h"
+//#include "cpprest/details/http_helpers.h"
+//#include "cpprest/http_client.h"
+//#include "cpprest/http_headers.h"
+//#include "cpprest/http_msg.h"
 
 // oauth
 #if !defined(_WIN32) || _WIN32_WINNT >= _WIN32_WINNT_VISTA
-#include "cpprest/oauth1.h"
+//#include "cpprest/oauth1.h"
 #endif
-#include "cpprest/oauth2.h"
+//#include "cpprest/oauth2.h"
 
 #if !defined(__cplusplus_winrt)
 #if _WIN32_WINNT >= _WIN32_WINNT_VISTA
-#include "cpprest/details/http_server.h"
-#include "cpprest/details/http_server_api.h"
-#include "cpprest/http_listener.h"
+//#include "cpprest/details/http_server.h"
+//#include "cpprest/details/http_server_api.h"
+//#include "cpprest/http_listener.h"
 #endif // _WIN32_WINNT >= _WIN32_WINNT_VISTA
 #endif
 
