@@ -171,7 +171,6 @@ public:
     {
       _M_scheduled_task.store(nullptr);
       _M_Completed.set(); 
-
     }
 
     scheduler_ptr _GetScheduler() const { return _M_pScheduler; }
