@@ -144,7 +144,7 @@ public:
         else
         {
             _M_pScheduler->schedule(_TaskProcHandle_t::_RunChoreBridge, _PTaskHandle);
-            _M_scheduled_task = _PTaskHandle;
+            _M_scheduled_task.store(_PTaskHandle);
         }
     }
 
@@ -156,11 +156,11 @@ public:
     void _RunAndWait()
     {
         // Limited inlining support for stand-alone tasks
-        if (_M_scheduled_task && _M_pScheduler && _M_pScheduler->unschedule(_M_scheduled_task))
+        auto scheduled_task = _M_scheduled_task.exchange(nullptr);
+        if (scheduled_task && _M_pScheduler && _M_pScheduler->unschedule(scheduled_task))
         {
           // Run inline
-          _TaskProcHandle_t::_RunChoreBridge(_M_scheduled_task);
-          _M_scheduled_task = nullptr;
+          _TaskProcHandle_t::_RunChoreBridge(scheduled_task);
         }
         _Wait();
     }
@@ -169,8 +169,8 @@ public:
 
     void _Complete() 
     {
+      _M_scheduled_task.store(nullptr);
       _M_Completed.set(); 
-      _M_scheduled_task = nullptr;
     }
 
     scheduler_ptr _GetScheduler() const { return _M_pScheduler; }
@@ -198,7 +198,7 @@ public:
 private:
     extensibility::event_t _M_Completed;
     scheduler_ptr _M_pScheduler;
-    _TaskProcHandle_t* _M_scheduled_task{ nullptr };
+    std::atomic<_TaskProcHandle_t*> _M_scheduled_task{ nullptr };
 };
 
 // For create_async lambdas that return a (non-task) result, we oversubscriber the current task for the duration of the
