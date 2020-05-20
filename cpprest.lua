@@ -25,7 +25,6 @@ project "cpprest"
   }
 
   files {
-    "Release/include/**.h",
     "Release/src/pplx/pplx.cpp",
     "Release/src/pplx/pplxtasks.cpp",
     "Release/src/uri/uri.cpp",
