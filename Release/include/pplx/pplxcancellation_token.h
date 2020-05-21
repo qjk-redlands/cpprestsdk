@@ -24,7 +24,9 @@
 
 #include "pplx/pplxinterface.h"
 #include <cstdlib>
+#include <iostream>
 #include <string>
+
 
 #pragma pack(push, _CRT_PACKING)
 // All header files are required to be protected from the macro new
@@ -129,9 +131,9 @@ public:
         _ASSERTE(_Refcount >= 0);
 
         if (_Refcount == 0)
-        {
-            _Destroy();
-        }
+            {
+                _Destroy();
+            }
 
         return _Refcount;
     }
@@ -181,16 +183,16 @@ private:
         long result = atomic_compare_exchange(_M_state, tid, _STATE_CLEAR);
 
         if (result == _STATE_CLEAR)
-        {
-            _Exec();
-
-            result = atomic_compare_exchange(_M_state, _STATE_CALLED, tid);
-
-            if (result == _STATE_SYNCHRONIZE)
             {
-                _M_pSyncBlock->set();
+                _Exec();
+
+                result = atomic_compare_exchange(_M_state, _STATE_CALLED, tid);
+
+                if (result == _STATE_SYNCHRONIZE)
+                    {
+                        _M_pSyncBlock->set();
+                    }
             }
-        }
         _Release();
     }
 
@@ -252,11 +254,11 @@ protected:
 #endif
             auto node = _M_begin;
             while (node != nullptr)
-            {
-                Node* tmp = node;
-                node = node->_M_next;
-                ::free(tmp);
-            }
+                {
+                    Node* tmp = node;
+                    node = node->_M_next;
+                    ::free(tmp);
+                }
 #if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
@@ -276,31 +278,31 @@ protected:
             Node* node = _M_begin;
 
             while (node != nullptr)
-            {
-                lambda(node->_M_token);
-                node = node->_M_next;
-            }
+                {
+                    lambda(node->_M_token);
+                    node = node->_M_next;
+                }
         }
 
         void push_back(_CancellationTokenRegistration* token)
         {
             Node* node = reinterpret_cast<Node*>(::malloc(sizeof(Node)));
             if (node == nullptr)
-            {
-                throw ::std::bad_alloc();
-            }
+                {
+                    throw ::std::bad_alloc();
+                }
 
             node->_M_token = token;
             node->_M_next = nullptr;
 
             if (_M_begin == nullptr)
-            {
-                _M_begin = node;
-            }
+                {
+                    _M_begin = node;
+                }
             else
-            {
-                _M_last->_M_next = node;
-            }
+                {
+                    _M_last->_M_next = node;
+                }
 
             _M_last = node;
         }
@@ -311,30 +313,30 @@ protected:
             Node* prev = nullptr;
 
             while (node != nullptr)
-            {
-                if (node->_M_token == token)
                 {
-                    if (prev == nullptr)
-                    {
-                        _M_begin = node->_M_next;
-                    }
-                    else
-                    {
-                        prev->_M_next = node->_M_next;
-                    }
+                    if (node->_M_token == token)
+                        {
+                            if (prev == nullptr)
+                                {
+                                    _M_begin = node->_M_next;
+                                }
+                            else
+                                {
+                                    prev->_M_next = node->_M_next;
+                                }
 
-                    if (node->_M_next == nullptr)
-                    {
-                        _M_last = prev;
-                    }
+                            if (node->_M_next == nullptr)
+                                {
+                                    _M_last = prev;
+                                }
 
-                    ::free(node);
-                    break;
+                            ::free(node);
+                            break;
+                        }
+
+                    prev = node;
+                    node = node->_M_next;
                 }
-
-                prev = node;
-                node = node->_M_next;
-            }
         }
 
     private:
@@ -353,42 +355,50 @@ public:
 
     ~_CancellationTokenState()
     {
+        std::cout << "in _CancellationTokenState destructor for tokenstate " << this << std::endl;
         TokenRegistrationContainer rundownList;
         {
             extensibility::scoped_critical_section_t _Lock(_M_listLock);
             _M_registrations.swap(rundownList);
         }
 
-        rundownList.for_each([](_CancellationTokenRegistration* pRegistration) {
-            pRegistration->_M_state = _CancellationTokenRegistration::_STATE_SYNCHRONIZE;
-            pRegistration->_Release();
-        });
+        rundownList.for_each(
+            [](_CancellationTokenRegistration* pRegistration)
+            {
+                pRegistration->_M_state = _CancellationTokenRegistration::_STATE_SYNCHRONIZE;
+                pRegistration->_Release();
+            });
 
-        _M_linkedRegistrations.for_each([](_CancellationTokenRegistration* pRegistration) {
-            auto token = pRegistration->_GetToken();
-            token->_DeregisterCallback(pRegistration);
-            pRegistration->_Release();
-            token->_Release();
-        });
+        _M_linkedRegistrations.for_each(
+            [](_CancellationTokenRegistration* pRegistration)
+            {
+                auto token = pRegistration->_GetToken();
+                token->_DeregisterCallback(pRegistration);
+                pRegistration->_Release();
+                token->_Release();
+            });
+        std::cout << "exiting _CancellationTokenState destructor for tokenstate " << this << std::endl;
     }
 
     bool _IsCanceled() const { return (_M_stateFlag != 0); }
 
     void _Cancel()
     {
+        std::cout << "in details::_CancellationTokenState_Cancel for token state " << this << std::endl;
         if (atomic_compare_exchange(_M_stateFlag, 1l, 0l) == 0)
-        {
-            TokenRegistrationContainer rundownList;
             {
-                extensibility::scoped_critical_section_t _Lock(_M_listLock);
-                _M_registrations.swap(rundownList);
+                TokenRegistrationContainer rundownList;
+                {
+                    extensibility::scoped_critical_section_t _Lock(_M_listLock);
+                    _M_registrations.swap(rundownList);
+                }
+
+                rundownList.for_each([](_CancellationTokenRegistration* pRegistration) { pRegistration->_Invoke(); });
+
+                _M_stateFlag = 2;
+                _M_cancelComplete.set();
             }
-
-            rundownList.for_each([](_CancellationTokenRegistration* pRegistration) { pRegistration->_Invoke(); });
-
-            _M_stateFlag = 2;
-            _M_cancelComplete.set();
-        }
+        std::cout << "exiting details::_CancellationTokenState_Cancel for tokenState " << this << std::endl;
     }
 
     _CancellationTokenRegistration* _RegisterCallback(TaskProc_t _PCallback, _In_ void* _PData, int _InitialRefs = 1)
@@ -408,20 +418,20 @@ public:
         bool invoke = true;
 
         if (!_IsCanceled())
-        {
-            extensibility::scoped_critical_section_t _Lock(_M_listLock);
-
-            if (!_IsCanceled())
             {
-                invoke = false;
-                _M_registrations.push_back(_PRegistration);
+                extensibility::scoped_critical_section_t _Lock(_M_listLock);
+
+                if (!_IsCanceled())
+                    {
+                        invoke = false;
+                        _M_registrations.push_back(_PRegistration);
+                    }
             }
-        }
 
         if (invoke)
-        {
-            _PRegistration->_Invoke();
-        }
+            {
+                _PRegistration->_Invoke();
+            }
     }
 
     void _RegisterLinkedCallback(_In_ _CancellationTokenRegistration* _PRegistration)
@@ -444,15 +454,15 @@ public:
             // that the cancellation is finished by the time we return from this method.
             //
             if (!_M_registrations.empty())
-            {
-                _M_registrations.remove(_PRegistration);
-                _PRegistration->_M_state = _CancellationTokenRegistration::_STATE_SYNCHRONIZE;
-                _PRegistration->_Release();
-            }
+                {
+                    _M_registrations.remove(_PRegistration);
+                    _PRegistration->_M_state = _CancellationTokenRegistration::_STATE_SYNCHRONIZE;
+                    _PRegistration->_Release();
+                }
             else
-            {
-                synchronize = true;
-            }
+                {
+                    synchronize = true;
+                }
         }
 
         //
@@ -464,46 +474,48 @@ public:
         // - The callback is in progress on this thread --> do nothing
         //
         if (synchronize)
-        {
-            long result = atomic_compare_exchange(_PRegistration->_M_state,
-                                                  _CancellationTokenRegistration::_STATE_DEFER_DELETE,
-                                                  _CancellationTokenRegistration::_STATE_CLEAR);
-
-            switch (result)
             {
-                case _CancellationTokenRegistration::_STATE_CLEAR:
-                case _CancellationTokenRegistration::_STATE_CALLED: break;
-                case _CancellationTokenRegistration::_STATE_DEFER_DELETE:
-                case _CancellationTokenRegistration::_STATE_SYNCHRONIZE: _ASSERTE(false); break;
-                default:
-                {
-                    long tid = result;
-                    if (tid == ::pplx::details::platform::GetCurrentThreadId())
+                long result = atomic_compare_exchange(_PRegistration->_M_state,
+                                                      _CancellationTokenRegistration::_STATE_DEFER_DELETE,
+                                                      _CancellationTokenRegistration::_STATE_CLEAR);
+
+                switch (result)
                     {
-                        //
-                        // It is entirely legal for a caller to Deregister during a callback instead of having to
-                        // provide their own synchronization mechanism between the two.  In this case, we do *NOT* need
-                        // to explicitly synchronize with the callback as doing so would deadlock.  If the call happens
-                        // during, skip any extra synchronization.
-                        //
-                        break;
+                        case _CancellationTokenRegistration::_STATE_CLEAR:
+                        case _CancellationTokenRegistration::_STATE_CALLED: break;
+                        case _CancellationTokenRegistration::_STATE_DEFER_DELETE:
+                        case _CancellationTokenRegistration::_STATE_SYNCHRONIZE: _ASSERTE(false); break;
+                        default:
+                            {
+                                long tid = result;
+                                if (tid == ::pplx::details::platform::GetCurrentThreadId())
+                                    {
+                                        //
+                                        // It is entirely legal for a caller to Deregister during a callback instead of
+                                        // having to provide their own synchronization mechanism between the two.  In
+                                        // this case, we do *NOT* need to explicitly synchronize with the callback as
+                                        // doing so would deadlock.  If the call happens during, skip any extra
+                                        // synchronization.
+                                        //
+                                        break;
+                                    }
+
+                                extensibility::event_t ev;
+                                _PRegistration->_M_pSyncBlock = &ev;
+
+                                long result_1 = atomic_exchange(_PRegistration->_M_state,
+                                                                _CancellationTokenRegistration::_STATE_SYNCHRONIZE);
+
+                                if (result_1 != _CancellationTokenRegistration::_STATE_CALLED)
+                                    {
+                                        _PRegistration->_M_pSyncBlock->wait(
+                                            ::pplx::extensibility::event_t::timeout_infinite);
+                                    }
+
+                                break;
+                            }
                     }
-
-                    extensibility::event_t ev;
-                    _PRegistration->_M_pSyncBlock = &ev;
-
-                    long result_1 =
-                        atomic_exchange(_PRegistration->_M_state, _CancellationTokenRegistration::_STATE_SYNCHRONIZE);
-
-                    if (result_1 != _CancellationTokenRegistration::_STATE_CALLED)
-                    {
-                        _PRegistration->_M_pSyncBlock->wait(::pplx::extensibility::event_t::timeout_infinite);
-                    }
-
-                    break;
-                }
             }
-        }
     }
 
 private:
@@ -549,20 +561,20 @@ public:
     cancellation_token_registration& operator=(const cancellation_token_registration& _Src)
     {
         if (this != &_Src)
-        {
-            _Clear();
-            _Assign(_Src._M_pRegistration);
-        }
+            {
+                _Clear();
+                _Assign(_Src._M_pRegistration);
+            }
         return *this;
     }
 
     cancellation_token_registration& operator=(cancellation_token_registration&& _Src)
     {
         if (this != &_Src)
-        {
-            _Clear();
-            _Move(_Src._M_pRegistration);
-        }
+            {
+                _Clear();
+                _Move(_Src._M_pRegistration);
+            }
         return *this;
     }
 
@@ -585,18 +597,18 @@ private:
     void _Clear()
     {
         if (_M_pRegistration != NULL)
-        {
-            _M_pRegistration->_Release();
-        }
+            {
+                _M_pRegistration->_Release();
+            }
         _M_pRegistration = NULL;
     }
 
     void _Assign(_In_ details::_CancellationTokenRegistration* _PRegistration)
     {
         if (_PRegistration != NULL)
-        {
-            _PRegistration->_Reference();
-        }
+            {
+                _PRegistration->_Reference();
+            }
         _M_pRegistration = _PRegistration;
     }
 
@@ -635,20 +647,20 @@ public:
     cancellation_token& operator=(const cancellation_token& _Src)
     {
         if (this != &_Src)
-        {
-            _Clear();
-            _Assign(_Src._M_Impl);
-        }
+            {
+                _Clear();
+                _Assign(_Src._M_Impl);
+            }
         return *this;
     }
 
     cancellation_token& operator=(cancellation_token&& _Src)
     {
         if (this != &_Src)
-        {
-            _Clear();
-            _Move(_Src._M_Impl);
-        }
+            {
+                _Clear();
+                _Move(_Src._M_Impl);
+            }
         return *this;
     }
 
@@ -696,10 +708,10 @@ public:
     ::pplx::cancellation_token_registration register_callback(const _Function& _Func) const
     {
         if (_M_Impl == NULL)
-        {
-            // A callback cannot be registered if the token does not have an associated source.
-            throw invalid_operation();
-        }
+            {
+                // A callback cannot be registered if the token does not have an associated source.
+                throw invalid_operation();
+            }
 #if defined(_MSC_VER)
 #pragma warning(suppress : 28197)
 #endif
@@ -739,18 +751,18 @@ private:
     void _Clear()
     {
         if (_M_Impl != NULL)
-        {
-            _M_Impl->_Release();
-        }
+            {
+                _M_Impl->_Release();
+            }
         _M_Impl = NULL;
     }
 
     void _Assign(_ImplType _Impl)
     {
         if (_Impl != NULL)
-        {
-            _Impl->_Reference();
-        }
+            {
+                _Impl->_Reference();
+            }
         _M_Impl = _Impl;
     }
 
@@ -765,14 +777,14 @@ private:
     cancellation_token(_ImplType _Impl) : _M_Impl(_Impl)
     {
         if (_M_Impl == ::pplx::details::_CancellationTokenState::_None())
-        {
-            _M_Impl = NULL;
-        }
+            {
+                _M_Impl = NULL;
+            }
 
         if (_M_Impl != NULL)
-        {
-            _M_Impl->_Reference();
-        }
+            {
+                _M_Impl->_Reference();
+            }
     }
 };
 
@@ -797,20 +809,20 @@ public:
     cancellation_token_source& operator=(const cancellation_token_source& _Src)
     {
         if (this != &_Src)
-        {
-            _Clear();
-            _Assign(_Src._M_Impl);
-        }
+            {
+                _Clear();
+                _Assign(_Src._M_Impl);
+            }
         return *this;
     }
 
     cancellation_token_source& operator=(cancellation_token_source&& _Src)
     {
         if (this != &_Src)
-        {
-            _Clear();
-            _Move(_Src._M_Impl);
-        }
+            {
+                _Clear();
+                _Move(_Src._M_Impl);
+            }
         return *this;
     }
 
@@ -821,9 +833,9 @@ public:
     ~cancellation_token_source()
     {
         if (_M_Impl != NULL)
-        {
-            _M_Impl->_Release();
-        }
+            {
+                _M_Impl->_Release();
+            }
     }
 
     /// <summary>
@@ -850,10 +862,10 @@ public:
     {
         cancellation_token_source newSource;
         if (_Src.is_cancelable())
-        {
-            newSource._RegisterLinkedCallback(
-                _Src.register_callback([impl = newSource._GetImpl()]() { impl->_Cancel(); }));
-        }
+            {
+                newSource._RegisterLinkedCallback(
+                    _Src.register_callback([impl = newSource._GetImpl()]() { impl->_Cancel(); }));
+            }
         return newSource;
     }
 
@@ -877,13 +889,13 @@ public:
     {
         cancellation_token_source newSource;
         for (_Iter _It = _Begin; _It != _End; ++_It)
-        {
-            if (_It->is_cancelable())
             {
-                newSource._RegisterLinkedCallback(
-                    _It->register_callback([impl = newSource._GetImpl()]() { impl->_Cancel(); }));
+                if (_It->is_cancelable())
+                    {
+                        newSource._RegisterLinkedCallback(
+                            _It->register_callback([impl = newSource._GetImpl()]() { impl->_Cancel(); }));
+                    }
             }
-        }
         return newSource;
     }
 
@@ -903,18 +915,18 @@ private:
     void _Clear()
     {
         if (_M_Impl != NULL)
-        {
-            _M_Impl->_Release();
-        }
+            {
+                _M_Impl->_Release();
+            }
         _M_Impl = NULL;
     }
 
     void _Assign(_ImplType _Impl)
     {
         if (_Impl != NULL)
-        {
-            _Impl->_Reference();
-        }
+            {
+                _Impl->_Reference();
+            }
         _M_Impl = _Impl;
     }
 
@@ -932,14 +944,14 @@ private:
     cancellation_token_source(_ImplType _Impl) : _M_Impl(_Impl)
     {
         if (_M_Impl == ::pplx::details::_CancellationTokenState::_None())
-        {
-            _M_Impl = NULL;
-        }
+            {
+                _M_Impl = NULL;
+            }
 
         if (_M_Impl != NULL)
-        {
-            _M_Impl->_Reference();
-        }
+            {
+                _M_Impl->_Reference();
+            }
     }
 };
 
