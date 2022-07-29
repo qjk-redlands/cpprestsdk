@@ -337,7 +337,6 @@ struct inner_parse_out
         if (scheme_begin)
         {
             components.m_scheme.assign(scheme_begin, scheme_end);
-            utility::details::inplace_tolower(components.m_scheme);
         }
         else
         {
@@ -352,7 +351,6 @@ struct inner_parse_out
         if (host_begin)
         {
             components.m_host.assign(host_begin, host_end);
-            utility::details::inplace_tolower(components.m_host);
         }
         else
         {
@@ -475,11 +473,6 @@ void removeDotSegments(uri_builder& builder)
 utility::string_t uri_components::join()
 {
     // canonicalize components first
-
-    // convert scheme to lowercase
-    utility::details::inplace_tolower(m_scheme);
-    // convert host to lowercase
-    utility::details::inplace_tolower(m_host);
 
     // canonicalize the path to have a leading slash if it's a full uri
     if (!m_host.empty() && m_path.empty())
