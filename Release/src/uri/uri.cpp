@@ -766,6 +766,15 @@ bool uri::operator==(const uri& other) const
     // Each individual URI component must be decoded before performing comparison.
     // TFS # 375865
 
+    auto this_scheme_lower = this->scheme();
+    utility::details::inplace_tolower(this_scheme_lower);
+    auto other_scheme_lower = other.scheme();
+    utility::details::inplace_tolower(other_scheme_lower);
+    auto this_host_lower = this->host();
+    utility::details::inplace_tolower(this_host_lower);
+    auto other_host_lower = other.host();
+    utility::details::inplace_tolower(other_host_lower);
+
     if (this->is_empty() && other.is_empty())
     {
         return true;
@@ -774,7 +783,7 @@ bool uri::operator==(const uri& other) const
     {
         return false;
     }
-    else if (this->scheme() != other.scheme())
+    else if (this_scheme_lower != other_scheme_lower)
     {
         // scheme is canonicalized to lowercase
         return false;
@@ -783,7 +792,7 @@ bool uri::operator==(const uri& other) const
     {
         return false;
     }
-    else if (uri::decode(this->host()) != uri::decode(other.host()))
+    else if (uri::decode(this_host_lower) != uri::decode(other_host_lower))
     {
         // host is canonicalized to lowercase
         return false;
