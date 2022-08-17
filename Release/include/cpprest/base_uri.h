@@ -301,8 +301,10 @@ public:
     /// <returns><c>true</c> if this URI references the local host, <c>false</c> otherwise.</returns>
     bool is_host_loopback() const
     {
+        auto host = this->host();
+        utility::details::inplace_tolower(host);
         return !is_empty() &&
-               ((host() == _XPLATSTR("localhost")) || (host().size() > 4 && host().substr(0, 4) == _XPLATSTR("127.")));
+               ((host == _XPLATSTR("localhost")) || (host.size() > 4 && host.substr(0, 4) == _XPLATSTR("127.")));
     }
 
     /// <summary>

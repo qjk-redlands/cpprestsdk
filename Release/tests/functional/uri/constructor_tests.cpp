@@ -133,17 +133,17 @@ SUITE(constructor_tests)
     // Tests a variety of different URIs using the examples in RFC 2732
     TEST(RFC_2732_examples_string)
     {
-        // The URI parser will make characters lower case
+        // The URI parser will keep the original casing
         uri http1(U("http://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]:80/index.html"));
         VERIFY_ARE_EQUAL(U("http"), http1.scheme());
-        VERIFY_ARE_EQUAL(U("[fedc:ba98:7654:3210:fedc:ba98:7654:3210]"), http1.host());
+        VERIFY_ARE_EQUAL(U("[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]"), http1.host());
         VERIFY_ARE_EQUAL(80, http1.port());
         VERIFY_ARE_EQUAL(U("/index.html"), http1.path());
         VERIFY_ARE_EQUAL(U(""), http1.query());
 
         uri http2(U("http://[1080:0:0:0:8:800:200C:417A]/index.html"));
         VERIFY_ARE_EQUAL(U("http"), http2.scheme());
-        VERIFY_ARE_EQUAL(U("[1080:0:0:0:8:800:200c:417a]"), http2.host());
+        VERIFY_ARE_EQUAL(U("[1080:0:0:0:8:800:200C:417A]"), http2.host());
         VERIFY_ARE_EQUAL(0, http2.port());
         VERIFY_ARE_EQUAL(U("/index.html"), http2.path());
         VERIFY_ARE_EQUAL(U(""), http2.query());
@@ -164,21 +164,21 @@ SUITE(constructor_tests)
 
         uri http5(U("http://[1080::8:800:200C:417A]/foo"));
         VERIFY_ARE_EQUAL(U("http"), http5.scheme());
-        VERIFY_ARE_EQUAL(U("[1080::8:800:200c:417a]"), http5.host());
+        VERIFY_ARE_EQUAL(U("[1080::8:800:200C:417A]"), http5.host());
         VERIFY_ARE_EQUAL(0, http5.port());
         VERIFY_ARE_EQUAL(U("/foo"), http5.path());
         VERIFY_ARE_EQUAL(U(""), http5.query());
 
         uri http6(U("http://[::FFFF:129.144.52.38]:80/index.html"));
         VERIFY_ARE_EQUAL(U("http"), http6.scheme());
-        VERIFY_ARE_EQUAL(U("[::ffff:129.144.52.38]"), http6.host());
+        VERIFY_ARE_EQUAL(U("[::FFFF:129.144.52.38]"), http6.host());
         VERIFY_ARE_EQUAL(80, http6.port());
         VERIFY_ARE_EQUAL(U("/index.html"), http6.path());
         VERIFY_ARE_EQUAL(U(""), http6.query());
 
         uri http7(U("http://[2010:836B:4179::836B:4179]"));
         VERIFY_ARE_EQUAL(U("http"), http7.scheme());
-        VERIFY_ARE_EQUAL(U("[2010:836b:4179::836b:4179]"), http7.host());
+        VERIFY_ARE_EQUAL(U("[2010:836B:4179::836B:4179]"), http7.host());
         VERIFY_ARE_EQUAL(0, http7.port());
         VERIFY_ARE_EQUAL(U("/"), http7.path());
         VERIFY_ARE_EQUAL(U(""), http7.query());
