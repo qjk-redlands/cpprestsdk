@@ -24,6 +24,12 @@ namespace http
 {
 namespace details
 {
+/// <summary>
+/// Helper function to get the default HTTP reason phrase for a status code.
+/// </summary>
+utility::string_t get_default_reason_phrase(status_code code);
+
+
 namespace chunked_encoding
 {
 // Transfer-Encoding: chunked support
