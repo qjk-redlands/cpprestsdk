@@ -22,6 +22,8 @@ includedirs {
 
 files {
   "Release/include/**.h",
+  "Release/src/http/common/http_helpers.cpp",
+  "Release/src/http/common/http_msg.cpp",
   "Release/src/pplx/pplx.cpp",
   "Release/src/pplx/pplxtasks.cpp",
   "Release/src/uri/uri.cpp",
@@ -33,8 +35,6 @@ local t_httpfiles = {
   "Release/src/http/client/http_client.cpp",
   "Release/src/http/client/http_client_msg.cpp",
   "Release/src/http/common/http_compression.cpp",
-  "Release/src/http/common/http_helpers.cpp",
-  "Release/src/http/common/http_msg.cpp",
   "Release/src/http/oauth/oauth1.cpp",
   "Release/src/http/oauth/oauth2.cpp",
   "Release/src/json/json.cpp",
