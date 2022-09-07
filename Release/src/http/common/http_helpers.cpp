@@ -13,6 +13,7 @@
 
 #include "stdafx.h"
 
+#include "cpprest/details/http_helpers.h"
 #include "internal_http_helpers.h"
 
 using namespace web;
